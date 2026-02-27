@@ -94,6 +94,46 @@
         </div>
     </section>
 
+    <!-- ============ NOTABLE LAWS SECTION (homepage) ============ -->
+    <section class="notable-laws-section" id="notable-laws-section">
+        <div class="container">
+            <h2 class="section-title">🔍 Leyes destacadas</h2>
+            <p class="section-desc">Buscá un legislador y mirá cómo votó en las leyes más importantes</p>
+            <div class="notable-search-row">
+                <input type="text" id="notable-search" placeholder="Escribí un nombre..." autocomplete="off">
+                <div id="notable-search-results" class="notable-dropdown hidden"></div>
+            </div>
+            <!-- Infographic card (populated by JS when legislator is selected) -->
+            <div class="notable-card-wrapper hidden" id="notable-card-wrapper">
+                <div class="notable-actions">
+                    <button class="btn-share" id="btn-copy-notable" title="Copiar imagen al portapapeles">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar imagen
+                    </button>
+                    <button class="btn-share btn-share-tw" id="btn-share-notable-tw" title="Compartir en X (Twitter)">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Compartir
+                    </button>
+                </div>
+                <div class="notable-card" id="notable-card">
+                    <div class="notable-card-left" id="notable-card-left">
+                        <!-- Photo + name + chamber (filled by JS) -->
+                    </div>
+                    <div class="notable-card-right" id="notable-card-right">
+                        <!-- Waffle grids for notable laws (filled by JS) -->
+                    </div>
+                    <div class="notable-card-footer">comovoto.ar</div>
+                </div>
+                <div class="notable-legend">
+                    <span class="waffle-legend-item"><span class="waffle-tile-legend tile-AFIRMATIVO"></span> Afirmativo</span>
+                    <span class="waffle-legend-item"><span class="waffle-tile-legend tile-NEGATIVO"></span> Negativo</span>
+                    <span class="waffle-legend-item"><span class="waffle-tile-legend tile-ABSTENCION"></span> Abstención</span>
+                    <span class="waffle-legend-item"><span class="waffle-tile-legend tile-AUSENTE"></span> Ausente</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ============ LEGISLATOR DETAIL ============ -->
     <section class="legislator-detail hidden" id="legislator-detail">
         <div class="container">
@@ -107,12 +147,15 @@
 
             <!-- Legislator Header -->
             <div class="leg-header" id="leg-header">
-                <div class="leg-info">
-                    <h2 class="leg-name" id="leg-name"></h2>
-                    <div class="leg-meta">
-                        <span class="leg-chamber badge" id="leg-chamber"></span>
-                        <span class="leg-bloc badge" id="leg-bloc"></span>
-                        <span class="leg-province badge" id="leg-province"></span>
+                <div class="leg-header-left">
+                    <img class="leg-photo" id="leg-photo" src="" alt="" style="display:none">
+                    <div class="leg-info">
+                        <h2 class="leg-name" id="leg-name"></h2>
+                        <div class="leg-meta">
+                            <span class="leg-chamber badge" id="leg-chamber"></span>
+                            <span class="leg-bloc badge" id="leg-bloc"></span>
+                            <span class="leg-province badge" id="leg-province"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="leg-alignment-summary" id="leg-alignment-summary">

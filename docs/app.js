@@ -5,6 +5,7 @@
  *   - Search legislators by name, bloc, province
  *   - Filter by chamber, coalition, year, law name
  *   - Waffle/grid visualization grouped by law
+ *   - Notable laws infographic with legislator photo
  *   - Alignment charts (line + bar)
  *   - Vote history table with pagination
  *   - Copy image / Share to Twitter
@@ -22,6 +23,23 @@ let currentVotesPage = 1;
 const VOTES_PER_PAGE = 25;
 
 const DATA_PATH = "data";
+
+// Notable laws — these are the ones we show on the homepage infographic
+const NOTABLE_LAW_KEYWORDS = [
+    "Ley Bases",
+    "Paquete Fiscal",
+    "RIGI",
+    "DNU 70/2023",
+    "Reforma Laboral",
+    "Financiamiento Universitario",
+    "Movilidad Jubilatoria",
+    "Privatizaciones",
+    "Boleta Unica",
+    "Ficha Limpia",
+    "IVE / Aborto",
+    "Presupuesto",
+    "Impuesto a las Ganancias",
+];
 
 // ===========================================================================
 //  INITIALIZATION
@@ -95,6 +113,11 @@ function setupEventListeners() {
         if (!searchBox.contains(e.target)) {
             hideSearchResults();
         }
+        // Also close notable dropdown
+        const notableRow = document.querySelector(".notable-search-row");
+        if (notableRow && !notableRow.contains(e.target)) {
+            document.getElementById("notable-search-results").classList.add("hidden");
+        }
     });
 
     // Vote table filters
@@ -106,9 +129,17 @@ function setupEventListeners() {
     document.getElementById("waffle-year-filter").addEventListener("change", renderWaffle);
     document.getElementById("waffle-law-filter").addEventListener("input", debounce(renderWaffle, 200));
 
-    // Share buttons
+    // Share buttons (legislator detail waffle)
     document.getElementById("btn-copy-image").addEventListener("click", copyWaffleImage);
     document.getElementById("btn-share-tw").addEventListener("click", shareTwitter);
+
+    // Notable laws section
+    const notableSearch = document.getElementById("notable-search");
+    notableSearch.addEventListener("input", debounce(onNotableSearchInput, 150));
+    notableSearch.addEventListener("focus", onNotableSearchInput);
+
+    document.getElementById("btn-copy-notable").addEventListener("click", () => copyCardImage("notable-card", "btn-copy-notable"));
+    document.getElementById("btn-share-notable-tw").addEventListener("click", shareTwitterNotable);
 }
 
 // ===========================================================================
@@ -196,6 +227,136 @@ function hideSearchResults() {
 }
 
 // ===========================================================================
+//  NOTABLE LAWS SECTION (homepage)
+// ===========================================================================
+
+function onNotableSearchInput() {
+    const query = document.getElementById("notable-search").value.trim().toLowerCase();
+    const dropdown = document.getElementById("notable-search-results");
+
+    if (!query || query.length < 2) {
+        dropdown.classList.add("hidden");
+        return;
+    }
+
+    const terms = query.split(/\s+/);
+    let results = legislatorsData.filter((l) => {
+        const searchable = `${l.n} ${l.b} ${l.p}`.toLowerCase();
+        return terms.every((t) => searchable.includes(t));
+    });
+    results.sort((a, b) => (b.tv || 0) - (a.tv || 0));
+    results = results.slice(0, 20);
+
+    if (results.length === 0) {
+        dropdown.innerHTML = `<div class="notable-dropdown-item" style="cursor:default; color:var(--color-text-secondary); justify-content:center;">Sin resultados</div>`;
+        dropdown.classList.remove("hidden");
+        return;
+    }
+
+    dropdown.innerHTML = results.map((l) => {
+        const photoHtml = l.ph
+            ? `<img src="${escapeAttr(l.ph)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : "";
+        return `
+        <div class="notable-dropdown-item" data-key="${l.k}">
+            ${photoHtml}<span class="no-photo" ${l.ph ? 'style="display:none"' : ""}>👤</span>
+            <span>${escapeHtml(l.n)} <small style="color:var(--color-text-secondary)">${l.co} · ${l.p || ""}</small></span>
+        </div>`;
+    }).join("");
+
+    dropdown.classList.remove("hidden");
+
+    dropdown.querySelectorAll(".notable-dropdown-item[data-key]").forEach((el) => {
+        el.addEventListener("click", () => {
+            dropdown.classList.add("hidden");
+            document.getElementById("notable-search").value = "";
+            loadNotableCard(el.dataset.key);
+        });
+    });
+}
+
+async function loadNotableCard(nameKey) {
+    const safeKey = nameKey.replace(/[^A-Z0-9_]/g, "_").substring(0, 80);
+    const url = `${DATA_PATH}/legislators/${safeKey}.json`;
+
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        renderNotableCard(data);
+    } catch (err) {
+        console.error("Error loading notable card:", err);
+    }
+}
+
+function renderNotableCard(data) {
+    const wrapper = document.getElementById("notable-card-wrapper");
+    wrapper.classList.remove("hidden");
+
+    const left = document.getElementById("notable-card-left");
+    const right = document.getElementById("notable-card-right");
+
+    // Left: photo + name + chamber
+    const chambers = data.chambers || [data.chamber];
+    const chamberLabel = chambers.length > 1 ? "HCD + HCS" : (chambers[0] === "diputados" ? "HCD" : "HCS");
+
+    const photoHtml = data.photo
+        ? `<img class="notable-photo" src="${escapeAttr(data.photo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+
+    left.innerHTML = `
+        ${photoHtml}
+        <div class="no-photo-large" ${data.photo ? 'style="display:none"' : ""}>👤</div>
+        <div class="notable-name">${escapeHtml(data.name)}</div>
+        <div class="notable-chamber">${chamberLabel}</div>
+    `;
+
+    // Right: waffle grids for notable laws
+    const laws = data.laws || [];
+
+    // Find laws matching notable keywords
+    const notableLaws = [];
+    for (const keyword of NOTABLE_LAW_KEYWORDS) {
+        const kw = keyword.toLowerCase();
+        const match = laws.find((l) => l.name && l.name.toLowerCase().includes(kw));
+        if (match) {
+            notableLaws.push({ ...match, displayName: keyword });
+        }
+    }
+
+    if (notableLaws.length === 0) {
+        right.innerHTML = `<div class="notable-no-data">Este legislador no tiene votos registrados en las leyes destacadas.</div>`;
+    } else {
+        right.innerHTML = notableLaws.map((law) => {
+            const tiles = law.votes.map((vote) => {
+                const cls = `waffle-tile tile-${vote.v}`;
+                const icon = voteIcon(vote.v);
+                const tooltip = vote.al ? `${vote.al}: ${formatVoteShort(vote.v)}` : formatVoteShort(vote.v);
+                return `<div class="${cls}" title="${escapeAttr(tooltip)}">${icon}</div>`;
+            }).join("");
+
+            return `
+            <div class="notable-law-block">
+                <div class="notable-law-title">${escapeHtml(law.displayName)}</div>
+                <div class="notable-law-tiles">${tiles}</div>
+            </div>`;
+        }).join("");
+    }
+
+    // Scroll into view
+    wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function shareTwitterNotable() {
+    const nameEl = document.querySelector("#notable-card-left .notable-name");
+    const name = nameEl ? nameEl.textContent : "un legislador";
+    const text = `Mirá cómo votó ${name} las leyes más importantes en el Congreso Argentino 🗳️\n\n¿Cómo Votó? - comovoto.ar`;
+    const url = encodeURIComponent(window.location.href);
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`;
+    window.open(tweetUrl, "_blank", "width=600,height=400");
+}
+
+// ===========================================================================
 //  LEGISLATOR DETAIL
 // ===========================================================================
 
@@ -206,6 +367,7 @@ async function loadLegislatorDetail(nameKey) {
     detailSection.classList.remove("hidden");
     document.querySelector(".search-section").classList.add("hidden");
     document.getElementById("stats-bar").classList.add("hidden");
+    document.getElementById("notable-laws-section").classList.add("hidden");
 
     const safeKey = nameKey.replace(/[^A-Z0-9_]/g, "_").substring(0, 80);
     const url = `${DATA_PATH}/legislators/${safeKey}.json`;
@@ -224,8 +386,19 @@ async function loadLegislatorDetail(nameKey) {
 }
 
 function renderLegislatorDetail(data) {
-    // Header
+    // Header with photo
     document.getElementById("leg-name").textContent = data.name;
+
+    // Photo
+    const photoEl = document.getElementById("leg-photo");
+    if (data.photo) {
+        photoEl.src = data.photo;
+        photoEl.alt = data.name;
+        photoEl.style.display = "block";
+        photoEl.onerror = () => { photoEl.style.display = "none"; };
+    } else {
+        photoEl.style.display = "none";
+    }
 
     const chamberBadge = document.getElementById("leg-chamber");
     const chambers = data.chambers || [data.chamber];
@@ -307,6 +480,7 @@ function showSearchView() {
     document.getElementById("legislator-detail").classList.add("hidden");
     document.querySelector(".search-section").classList.remove("hidden");
     document.getElementById("stats-bar").classList.remove("hidden");
+    document.getElementById("notable-laws-section").classList.remove("hidden");
 
     if (chartAlignment) { chartAlignment.destroy(); chartAlignment = null; }
     if (chartYearly) { chartYearly.destroy(); chartYearly = null; }
@@ -381,9 +555,9 @@ function voteIcon(vote) {
 //  SHARE / EXPORT
 // ===========================================================================
 
-async function copyWaffleImage() {
-    const card = document.getElementById("waffle-card");
-    const btn = document.getElementById("btn-copy-image");
+async function copyCardImage(cardId, btnId) {
+    const card = document.getElementById(cardId);
+    const btn = document.getElementById(btnId);
     const originalText = btn.innerHTML;
 
     try {
@@ -409,7 +583,7 @@ async function copyWaffleImage() {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `como_voto_${currentDetail.name_key || "legislador"}.png`;
+                a.download = `como_voto_${cardId}.png`;
                 a.click();
                 URL.revokeObjectURL(url);
                 btn.innerHTML = "✓ Descargado!";
@@ -421,6 +595,10 @@ async function copyWaffleImage() {
         btn.innerHTML = "Error :(";
         setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
     }
+}
+
+async function copyWaffleImage() {
+    await copyCardImage("waffle-card", "btn-copy-image");
 }
 
 function shareTwitter() {

@@ -362,6 +362,21 @@ body {
     gap: 1.5rem;
 }
 
+.leg-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.leg-photo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--color-border);
+    flex-shrink: 0;
+}
+
 .leg-name {
     font-size: 1.75rem;
     font-weight: 700;
@@ -826,6 +841,217 @@ body {
     border-color: var(--color-primary);
 }
 
+/* ====== NOTABLE LAWS SECTION ====== */
+.notable-laws-section {
+    padding: 2rem 0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.section-desc {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.notable-search-row {
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+}
+
+.notable-search-row input {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-family: inherit;
+    border: 2px solid var(--color-border);
+    border-radius: 50px;
+    background: var(--color-surface);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.notable-search-row input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.notable-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.notable-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition);
+    font-size: 0.9rem;
+}
+
+.notable-dropdown-item:last-child { border-bottom: none; }
+.notable-dropdown-item:hover { background: #f0f7ff; }
+
+.notable-dropdown-item img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid var(--color-border);
+}
+
+.notable-dropdown-item .no-photo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+}
+
+/* Notable card */
+.notable-card-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.notable-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+.notable-card {
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.notable-card-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.notable-card-left .notable-photo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--color-border);
+}
+
+.notable-card-left .no-photo-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-text-secondary);
+}
+
+.notable-card-left .notable-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.notable-card-left .notable-chamber {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.notable-card-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 300px;
+}
+
+.notable-law-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.notable-law-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.notable-law-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.notable-card-footer {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.6rem;
+    color: #d1d5db;
+    font-weight: 500;
+}
+
+.notable-legend {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.notable-no-data {
+    text-align: center;
+    padding: 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
 /* ====== FOOTER ====== */
 .footer {
     background: var(--color-text);
@@ -859,6 +1085,11 @@ body {
 
     .leg-header {
         flex-direction: column;
+    }
+
+    .leg-header-left {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .leg-alignment-summary {
@@ -947,6 +1178,16 @@ body {
     .waffle-actions .btn-share {
         flex: 1;
         justify-content: center;
+    }
+
+    .notable-card {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .notable-card-right {
+        min-width: unset;
+        width: 100%;
     }
 }
 

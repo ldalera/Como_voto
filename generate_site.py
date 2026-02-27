@@ -27,6 +27,7 @@ DIPUTADOS_DIR = DATA_DIR / "diputados"
 SENADORES_DIR = DATA_DIR / "senadores"
 DOCS_DIR = BASE_DIR / "docs"
 DOCS_DATA_DIR = DOCS_DIR / "data"
+FOTOS_DIR = DOCS_DIR / "fotos"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -252,6 +253,58 @@ def compute_majority_vote(votes: list[dict], coalition: str) -> str:
     return max_vote
 
 
+def compute_combined_majority(votes: list[dict], coalitions: list[str]) -> str:
+    """Compute majority vote across multiple coalitions combined.
+    Used for 2023+ opposition bloc (LLA + PRO grouped together).
+    """
+    coalition_votes = [v for v in votes if v.get("coalition") in coalitions]
+    if not coalition_votes:
+        return "N/A"
+
+    counts = defaultdict(int)
+    for v in coalition_votes:
+        vote = v["vote"].upper()
+        if "AFIRMATIV" in vote:
+            counts["AFIRMATIVO"] += 1
+        elif "NEGATIV" in vote:
+            counts["NEGATIVO"] += 1
+        elif "ABSTENCI" in vote or "ABSTENCION" in vote:
+            counts["ABSTENCION"] += 1
+        elif "AUSENT" in vote:
+            counts["AUSENTE"] += 1
+
+    active_counts = {k: v for k, v in counts.items() if k != "AUSENTE"}
+    if not active_counts:
+        return "AUSENTE"
+
+    max_vote = max(active_counts, key=active_counts.get)
+    return max_vote
+
+
+def is_contested(year: int | None, pj_majority: str, pro_majority: str,
+                 lla_majority: str, opp_majority_2023: str) -> bool:
+    """Determine if a votación had disagreement between the two major sides.
+
+    For 2015-2022: PJ vs PRO — contested if they voted differently.
+    For 2023-2026: PJ vs combined opposition (LLA+PRO) — contested if they
+                   voted differently.
+    Votes where either side is N/A or AUSENTE are not considered contested.
+    """
+    if year is None:
+        return False
+
+    if year <= 2022:
+        # PJ vs PRO
+        if pj_majority in ("N/A", "AUSENTE") or pro_majority in ("N/A", "AUSENTE"):
+            return False
+        return pj_majority != pro_majority
+    else:
+        # 2023+: PJ vs opposition (LLA+PRO combined)
+        if pj_majority in ("N/A", "AUSENTE") or opp_majority_2023 in ("N/A", "AUSENTE"):
+            return False
+        return pj_majority != opp_majority_2023
+
+
 def normalize_vote(vote_str: str) -> str:
     v = vote_str.upper().strip()
     if "AFIRMATIV" in v:
@@ -276,6 +329,74 @@ def normalize_name(name: str) -> str:
     for old, new in replacements.items():
         name = name.replace(old, new)
     return name
+
+
+def load_photo_maps() -> dict[str, str]:
+    """Load photo name->filename mappings from scraper output.
+    Returns a dict: normalized_name -> relative path (fotos/filename).
+    """
+    photo_map: dict[str, str] = {}
+
+    # Diputados photos
+    dip_photos_path = DATA_DIR / "diputados_photos.json"
+    if dip_photos_path.exists():
+        try:
+            with open(dip_photos_path, "r", encoding="utf-8") as f:
+                dip_photos = json.load(f)
+            for name, filename in dip_photos.items():
+                nk = normalize_name(name)
+                photo_map[nk] = f"fotos/{filename}"
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Senadores photos
+    sen_photos_path = DATA_DIR / "senadores_photos.json"
+    if sen_photos_path.exists():
+        try:
+            with open(sen_photos_path, "r", encoding="utf-8") as f:
+                sen_photos = json.load(f)
+            for name, filename in sen_photos.items():
+                nk = normalize_name(name)
+                if nk not in photo_map:  # don't overwrite diputados photo
+                    photo_map[nk] = f"fotos/{filename}"
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Also scan scraped votacion files for photo_id in votes
+    for fpath in sorted(DIPUTADOS_DIR.glob("*.json")):
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for v in data.get("votes", []):
+                pid = v.get("photo_id", "")
+                name = v.get("name", "").strip()
+                if pid and name:
+                    nk = normalize_name(name)
+                    filename = f"fotos/dip_{pid}.jpg"
+                    if nk not in photo_map:
+                        photo_map[nk] = filename
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return photo_map
+
+
+def attach_photos(legislators: dict, photo_map: dict[str, str]):
+    """Attach photo paths to legislator records."""
+    matched = 0
+    for name_key, leg in legislators.items():
+        photo = photo_map.get(name_key, "")
+        if photo:
+            # Verify the file actually exists
+            full_path = DOCS_DIR / photo.replace("/", os.sep)
+            if full_path.exists():
+                leg["photo"] = photo
+                matched += 1
+            else:
+                leg["photo"] = ""
+        else:
+            leg["photo"] = ""
+    log.info(f"Attached photos to {matched}/{len(legislators)} legislators")
 
 
 def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
@@ -303,6 +424,14 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
         pj_majority = compute_majority_vote(votacion.get("votes", []), "PJ")
         pro_majority = compute_majority_vote(votacion.get("votes", []), "PRO")
         lla_majority = compute_majority_vote(votacion.get("votes", []), "LLA")
+        # Combined opposition majority for 2023+: LLA + PRO voters pooled
+        opp_majority_2023 = compute_combined_majority(
+            votacion.get("votes", []), ["LLA", "PRO"]
+        )
+
+        # Determine if this votación is contested (major blocs disagreed)
+        contested = is_contested(year, pj_majority, pro_majority,
+                                 lla_majority, opp_majority_2023)
 
         for vote_record in votacion.get("votes", []):
             name = vote_record.get("name", "").strip()
@@ -394,7 +523,9 @@ def build_legislator_data(all_votaciones: list[dict], law_groups: dict) -> dict:
                         "LLA": {"total": 0, "aligned": 0},
                     }
 
-                if norm_vote not in ("AUSENTE", "PRESIDENTE"):
+                # Only count alignment on contested votes (where the
+                # two major blocs disagreed)
+                if contested and norm_vote not in ("AUSENTE", "PRESIDENTE"):
                     for coalition, majority in [("PJ", pj_majority), ("PRO", pro_majority), ("LLA", lla_majority)]:
                         if majority not in ("N/A", "AUSENTE"):
                             leg["alignment"][coalition]["total"] += 1
@@ -441,6 +572,7 @@ def generate_site_data(legislators: dict, law_groups: dict):
             "apro": alignment_pro,
             "alla": alignment_lla,
             "tv": total_votes,
+            "ph": leg.get("photo", ""),
         })
 
     save_json(DOCS_DATA_DIR / "legislators.json", leg_index)
@@ -491,6 +623,7 @@ def generate_site_data(legislators: dict, law_groups: dict):
         detail = {
             "name": leg["name"],
             "name_key": key,
+            "photo": leg.get("photo", ""),
             "chambers": sorted(set(leg["chambers"])),
             "chamber": leg["chamber"],
             "bloc": leg["bloc"],
@@ -587,8 +720,15 @@ def main():
     law_groups = build_law_groups(all_votaciones)
     log.info(f"Identified {len(law_groups)} law groups")
 
+    # Load photo mappings
+    photo_map = load_photo_maps()
+    log.info(f"Loaded photo map: {len(photo_map)} entries")
+
     legislators = build_legislator_data(all_votaciones, law_groups)
     log.info(f"Found {len(legislators)} unique legislators")
+
+    # Attach photos to legislators
+    attach_photos(legislators, photo_map)
 
     generate_site_data(legislators, law_groups)
 
