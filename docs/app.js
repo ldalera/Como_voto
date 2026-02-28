@@ -617,6 +617,13 @@ function renderAlignmentChart(data) {
     const proData = years.map((y) => data.yearly_alignment[y]?.PRO ?? null);
     const llaData = years.map((y) => data.yearly_alignment[y]?.LLA ?? null);
 
+    // Centralized point sizing so legend markers match plotted points
+    const POINT_RADIUS = 4;
+    const POINT_HOVER_RADIUS = 6;
+    const DATASET_BORDER_WIDTH = 2.5;
+    // Legend box should roughly match the visual point size; keep it small.
+    const legendBox = Math.max(6, Math.round(POINT_RADIUS * 1.6));
+
     chartAlignment = new Chart(ctx, {
         type: "line",
         data: {
@@ -684,10 +691,10 @@ function renderAlignmentChart(data) {
                 layout: { padding: { top: 14 } },
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
+                plugins: {
                 legend: {
                     position: "bottom",
-                    labels: { usePointStyle: true, padding: 15, font: { size: 12 } },
+                    labels: { usePointStyle: true, padding: 15, boxWidth: 6, boxHeight: 6, font: { size: 12 } },
                 },
                 tooltip: {
                     callbacks: {
