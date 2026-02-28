@@ -97,6 +97,7 @@ function setupEventListeners() {
     const clearBtn = document.getElementById("clear-search");
     const filterChamber = document.getElementById("filter-chamber");
     const filterCoalition = document.getElementById("filter-coalition");
+    const filterProvince = document.getElementById("filter-province");
     const backBtn = document.getElementById("back-btn");
 
     searchInput.addEventListener("input", debounce(onSearchInput, 150));
@@ -108,6 +109,7 @@ function setupEventListeners() {
     });
     filterChamber.addEventListener("change", onSearchInput);
     filterCoalition.addEventListener("change", onSearchInput);
+    if (filterProvince) filterProvince.addEventListener("change", onSearchInput);
     backBtn.addEventListener("click", showSearchView);
 
     document.addEventListener("click", (e) => {
@@ -152,6 +154,7 @@ function onSearchInput() {
     const query = document.getElementById("search-input").value.trim().toLowerCase();
     const chamber = document.getElementById("filter-chamber").value;
     const coalition = document.getElementById("filter-coalition").value;
+    const province = (document.getElementById("filter-province")?.value || "").trim();
 
     if (!query && !chamber && !coalition) {
         hideSearchResults();
@@ -165,6 +168,10 @@ function onSearchInput() {
     }
     if (coalition) {
         results = results.filter((l) => l.co === coalition);
+    }
+    if (province) {
+        const pv = province.toLowerCase();
+        results = results.filter((l) => (l.p || "").toLowerCase() === pv);
     }
     if (query) {
         const terms = query.split(/\s+/);

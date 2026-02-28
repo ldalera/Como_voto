@@ -1,0 +1,12 @@
+We need to remove the link to url that we have currently added to the  "Leyes destacadas" section. 
+Also, we need to add funcitonality so that when a checkbox in that section is clicked, weget a popup with
+information regarding that votacion, probably name and date, as well as a clickable link which
+opens the url to that particular votacion in the diputados website.
+
+Also, we need to add an image of the same picture which is at the top of the webpage once we select a politico,
+to the "Leyes destacadas" section, right beside the name.
+
+Then we need to look into the percentage affinity calculation. For each year, for every law that 
+was voted differently by the two largest blocks for that year, we need to calculate the percentage of votaciones where 
+the vote of the politician coincides with the majority vote of the parties. We need to use (PJ, Justicialistas, Union Por la Patria, 	Frente para la Victoria, Frente de Todos) for every year,
+and up to 2023, compare to (JxC, Cambiemos, PRO, UCR). Starting 2024, we use PJ and similar versus LLA and PRO.
