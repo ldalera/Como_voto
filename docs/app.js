@@ -556,15 +556,21 @@ async function copyCardImage(cardId, btnId) {
     try {
         btn.innerHTML = "⏳ Generando...";
         btn.disabled = true;
+        // Try html2canvas with CORS first (best fidelity). If it fails (tainted images
+        // or CORS errors), fall back to a less strict render (allowTaint) and then
+        // finally to a download fallback.
+        try {
+            const canvas = await html2canvas(card, {
+                backgroundColor: "#ffffff",
+                scale: 2,
+                useCORS: true,
+                logging: false,
+            });
 
-        const canvas = await html2canvas(card, {
-            backgroundColor: "#ffffff",
-            scale: 2,
-            useCORS: true,
-            logging: false,
-        });
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+            });
 
-        canvas.toBlob(async (blob) => {
             try {
                 await navigator.clipboard.write([
                     new ClipboardItem({ "image/png": blob }),
@@ -572,7 +578,7 @@ async function copyCardImage(cardId, btnId) {
                 btn.innerHTML = "✓ Copiado!";
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
             } catch (e) {
-                // Fallback: download the image
+                console.warn("Clipboard write failed, falling back to download:", e);
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
@@ -582,9 +588,40 @@ async function copyCardImage(cardId, btnId) {
                 btn.innerHTML = "✓ Descargado!";
                 setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
             }
-        }, "image/png");
+        } catch (err) {
+            console.warn("html2canvas with CORS failed, retrying with allowTaint:", err);
+            // Retry with allowTaint so html2canvas renders even with cross-origin images.
+            try {
+                const canvas2 = await html2canvas(card, {
+                    backgroundColor: "#ffffff",
+                    scale: 2,
+                    useCORS: false,
+                    allowTaint: true,
+                    logging: false,
+                });
+
+                const blob2 = await new Promise((resolve, reject) => {
+                    canvas2.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+                });
+
+                // When using allowTaint the clipboard may still fail due to tainted canvas,
+                // so we go directly to download fallback.
+                const url = URL.createObjectURL(blob2);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `como_voto_${cardId}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+                btn.innerHTML = "✓ Descargado!";
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+            } catch (err2) {
+                console.error("All attempts to generate/export image failed:", err2);
+                btn.innerHTML = "Error :(";
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+            }
+        }
     } catch (err) {
-        console.error("Error generating image:", err);
+        console.error("Unexpected error in copyCardImage:", err);
         btn.innerHTML = "Error :(";
         setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
     }
@@ -1073,6 +1110,17 @@ function parseArgDate(dateStr) {
     const notableInput = document.getElementById("notable-search");
     if (notableInput) notableInput.addEventListener("input", debounce(onNotableSearchInput, 200));
 
+    // Wire notable card share / copy buttons
+    const btnCopyNotable = document.getElementById("btn-copy-notable");
+    if (btnCopyNotable) btnCopyNotable.addEventListener("click", () => copyCardImage("notable-card", "btn-copy-notable"));
+    const btnShareNotable = document.getElementById("btn-share-notable-tw");
+    if (btnShareNotable) btnShareNotable.addEventListener("click", shareTwitterNotable);
+
     // Populate initial small search result if desired (empty/hidden)
     hideSearchResults();
+    // Wire waffle/legislator detail share + copy buttons
+    const btnCopyWaffle = document.getElementById("btn-copy-image");
+    if (btnCopyWaffle) btnCopyWaffle.addEventListener("click", copyWaffleImage);
+    const btnShareWaffle = document.getElementById("btn-share-tw");
+    if (btnShareWaffle) btnShareWaffle.addEventListener("click", shareTwitter);
 })();
