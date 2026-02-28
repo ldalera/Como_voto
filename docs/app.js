@@ -360,8 +360,17 @@ function renderLegislatorDetail(data) {
         alignSummary.appendChild(card);
     }
 
-    // Waffle card header
-    document.getElementById("waffle-card-name").textContent = data.name;
+    // Waffle card header — include small portrait next to the politician name
+    const waffleNameEl = document.getElementById("waffle-card-name");
+    const smallPhoto = data.photo
+        ? `<img class="waffle-header-photo" src="${escapeAttr(data.photo)}" alt="">`
+        : `<span class="waffle-header-photo no-photo">👤</span>`;
+    waffleNameEl.innerHTML = `
+        <div class="waffle-header-left">
+            ${smallPhoto}
+            <div class="waffle-card-name-text">${escapeHtml(data.name)}</div>
+        </div>`;
+
     const chamberLabel = chambers.length > 1 ? "HCD + HCS" : (chambers[0] === "diputados" ? "HCD" : "HCS");
     document.getElementById("waffle-card-meta").innerHTML = `
         <span class="badge badge-${chambers[0]}">${chamberLabel}</span>

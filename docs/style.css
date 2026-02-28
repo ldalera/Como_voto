@@ -560,6 +560,33 @@ body {
     gap: 0.5rem;
 }
 
+/* Small portrait in waffle header (Leyes destacadas) */
+.waffle-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.waffle-header-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-border);
+    flex-shrink: 0;
+}
+.waffle-header-photo.no-photo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e5e7eb;
+    color: var(--color-text-secondary);
+}
+.waffle-card-name-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
 /* Waffle law rows */
 .waffle-law-row {
     display: flex;
