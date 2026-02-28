@@ -493,29 +493,29 @@ function renderWaffle() {
 
     // Render waffle pagination
     if (paginationContainer) {
-        if (totalPages <= 1) {
+            if (totalPages <= 1) {
             paginationContainer.innerHTML = `<span style="font-size:0.8rem;color:var(--color-text-secondary)">${laws.length} leyes</span>`;
         } else {
             let pHtml = "";
             if (currentWafflePage > 1) {
-                pHtml += `<button data-wpage="${currentWafflePage - 1}">\u2190 Ant.</button>`;
+                pHtml += `<button data-page="${currentWafflePage - 1}">← Ant.</button>`;
             }
             for (let p = 1; p <= totalPages; p++) {
                 if (p === 1 || p === totalPages || Math.abs(p - currentWafflePage) <= 2) {
-                    pHtml += `<button data-wpage="${p}" class="${p === currentWafflePage ? "active" : ""}">${p}</button>`;
+                    pHtml += `<button data-page="${p}" class="${p === currentWafflePage ? "active" : ""}">${p}</button>`;
                 } else if (Math.abs(p - currentWafflePage) === 3) {
-                    pHtml += `<span style="padding:0.4rem;color:var(--color-text-secondary)">\u2026</span>`;
+                    pHtml += `<span style="padding:0.4rem;color:var(--color-text-secondary)">…</span>`;
                 }
             }
             if (currentWafflePage < totalPages) {
-                pHtml += `<button data-wpage="${currentWafflePage + 1}">Sig. \u2192</button>`;
+                pHtml += `<button data-page="${currentWafflePage + 1}">Sig. →</button>`;
             }
             pHtml += `<span style="font-size:0.75rem;color:var(--color-text-secondary);margin-left:0.5rem">${laws.length} leyes</span>`;
             paginationContainer.innerHTML = pHtml;
 
-            paginationContainer.querySelectorAll("button[data-wpage]").forEach((btn) => {
+            paginationContainer.querySelectorAll("button[data-page]").forEach((btn) => {
                 btn.addEventListener("click", () => {
-                    currentWafflePage = parseInt(btn.dataset.wpage);
+                    currentWafflePage = parseInt(btn.dataset.page);
                     renderWaffle();
                     document.getElementById("waffle-section").scrollIntoView({ behavior: "smooth" });
                 });

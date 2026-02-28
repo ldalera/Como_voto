@@ -849,6 +849,37 @@ body {
     border-color: var(--color-primary);
 }
 
+/* Make waffle (Leyes destacadas) pagination match votes pagination */
+#waffle-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+#waffle-pagination button {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+#waffle-pagination button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+#waffle-pagination button.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
 /* ====== NOTABLE LAWS SECTION ====== */
 .notable-laws-section {
     padding: 2rem 0;
