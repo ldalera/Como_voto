@@ -333,7 +333,7 @@ function renderLegislatorDetail(data) {
     }
 
     const blocBadge = document.getElementById("leg-bloc");
-    blocBadge.textContent = data.bloc;
+    blocBadge.textContent = shortPartyName(data.bloc);
     blocBadge.className = `leg-bloc badge badge-${data.coalition.toLowerCase()}`;
 
     document.getElementById("leg-province").textContent = data.province;
@@ -365,7 +365,7 @@ function renderLegislatorDetail(data) {
     const chamberLabel = chambers.length > 1 ? "HCD + HCS" : (chambers[0] === "diputados" ? "HCD" : "HCS");
     document.getElementById("waffle-card-meta").innerHTML = `
         <span class="badge badge-${chambers[0]}">${chamberLabel}</span>
-        <span class="badge badge-${data.coalition.toLowerCase()}">${data.bloc}</span>
+        <span class="badge badge-${data.coalition.toLowerCase()}">${shortPartyName(data.bloc)}</span>
     `;
 
     // Populate waffle year filter
@@ -926,6 +926,37 @@ function escapeRegex(str) {
 function truncate(str, maxLen) {
     if (!str) return "";
     return str.length > maxLen ? str.substring(0, maxLen - 1) + "…" : str;
+}
+
+// Shorten long party/bloc names for display (e.g. "Frente de Izquierda..." -> "FIT-U")
+function shortPartyName(name) {
+    if (!name) return "";
+    const n = name.trim();
+
+    const aliases = [
+        { re: /frente\s+de\s+izquierda.*unidad/i, short: "FIT-U" },
+        { re: /frente\s+de\s+izquierda/i, short: "FIT" },
+        { re: /frente\s+de\s+todos/i, short: "FdT" },
+    ];
+
+    for (const a of aliases) {
+        if (a.re.test(n)) return a.short;
+    }
+
+    // If the name is short already, return as-is
+    if (n.length <= 18) return n;
+
+    // Build an acronym from significant words
+    const stopwords = new Set(["y", "de", "la", "los", "del", "el", "para", "por", "en", "con"]);
+    const parts = n.split(/\s+/).filter(Boolean);
+    const significant = parts.filter((w) => !stopwords.has(w.toLowerCase()));
+    let acronym = significant.slice(0, 3).map((w) => w[0].toUpperCase()).join("");
+
+    // If last word contains 'unidad', append -U (common in FIT-U)
+    const last = parts[parts.length - 1].toLowerCase();
+    if (last.includes("unidad") && !acronym.endsWith("U")) acronym = acronym + "-U";
+
+    return acronym || n.substring(0, 12).toUpperCase();
 }
 
 function debounce(fn, ms) {
