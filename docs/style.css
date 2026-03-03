@@ -648,6 +648,19 @@ body {
     z-index: 2;
 }
 
+.waffle-tile.tile-clickable {
+    cursor: pointer;
+}
+
+/* "En General" votes stand out with a larger box and a colored outline */
+.waffle-tile.tile-general {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    box-shadow: 0 0 0 2.5px currentColor;
+}
+
 .tile-AFIRMATIVO {
     background: #dcfce7;
     color: #16a34a;
@@ -1070,7 +1083,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    min-width: 300px;
+    min-width: 0; /* was 300px — caused horizontal overflow on phones */
 }
 
 .notable-law-block {
@@ -1118,6 +1131,114 @@ body {
     font-style: italic;
 }
 
+/* ====== VOTE INFO POPUP ====== */
+.vote-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.vote-popup-overlay.hidden {
+    display: none !important;
+}
+
+.vote-popup {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: 1.75rem 2rem;
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    animation: popupFadeIn 0.15s ease;
+}
+
+@keyframes popupFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.vote-popup-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem;
+    transition: color var(--transition);
+}
+
+.vote-popup-close:hover {
+    color: var(--color-text);
+}
+
+.vote-popup-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-right: 1.5rem;
+    color: var(--color-text);
+}
+
+.vote-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.vote-popup-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.vote-popup-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+}
+
+.vote-popup-value {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    line-height: 1.4;
+}
+
+.vote-popup-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-primary);
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all var(--transition);
+}
+
+.vote-popup-link:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--color-primary);
+}
+
 /* ====== FOOTER ====== */
 .footer {
     background: var(--color-text);
@@ -1138,24 +1259,43 @@ body {
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
     .header {
-        padding: 1.5rem 0;
+        padding: 1.25rem 0;
     }
 
     .logo {
         font-size: 1.5rem;
     }
 
+    .logo-icon {
+        font-size: 1.75rem;
+    }
+
     .charts-row {
         grid-template-columns: 1fr;
     }
 
-    .leg-header {
-        flex-direction: column;
+    .chart-container {
+        height: 220px;
     }
 
-    .leg-header-left {
+    .leg-header {
         flex-direction: column;
-        align-items: flex-start;
+        padding: 1.25rem;
+    }
+
+    /* Keep photo + name side-by-side on tablets */
+    .leg-header-left {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .leg-photo {
+        width: 56px;
+        height: 56px;
+    }
+
+    .leg-name {
+        font-size: 1.3rem;
     }
 
     .leg-alignment-summary {
@@ -1163,8 +1303,15 @@ body {
         justify-content: space-around;
     }
 
+    .waffle-section,
+    .votes-section,
+    .chart-card {
+        padding: 1rem;
+    }
+
     .waffle-toolbar {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .waffle-law-label {
@@ -1176,6 +1323,14 @@ body {
         width: 24px;
         height: 24px;
         font-size: 0.65rem;
+    }
+
+    .waffle-tile.tile-general {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+        border-radius: 2px;
+        box-shadow: 0 0 0 1px currentColor;
     }
 
     .waffle-card-name {
@@ -1200,22 +1355,165 @@ body {
     }
 }
 
+/* ─── Phone layout: card-based votes table + stacked notable card ─── */
+@media (max-width: 600px) {
+    /* Votes table → per-row cards */
+    .votes-table-wrapper {
+        overflow-x: unset;
+    }
+
+    .votes-table,
+    .votes-table tbody {
+        display: block;
+    }
+
+    .votes-table thead {
+        display: none;
+    }
+
+    .votes-table tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .votes-table tr:hover {
+        background: #f9fafb;
+    }
+
+    /* td 1 – date: top-left */
+    .votes-table td:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+        border: none;
+        padding: 0 0 0.1rem;
+        font-size: 0.72rem;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+    }
+
+    /* td 2 – law name: full-width second row */
+    .votes-table td:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        border: none;
+        padding: 0.1rem 0;
+    }
+
+    /* td 3 – source link: top-right, next to date */
+    .votes-table td:nth-child(3) {
+        grid-column: 2;
+        grid-row: 1;
+        border: none;
+        padding: 0 0 0.1rem;
+        text-align: right;
+    }
+
+    /* td 4 – vote chip: third row */
+    .votes-table td:nth-child(4) {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        border: none;
+        padding: 0.1rem 0 0;
+    }
+
+    /* Hide the four coalition columns — not enough room on phones */
+    .votes-table td:nth-child(5),
+    .votes-table td:nth-child(6),
+    .votes-table td:nth-child(7),
+    .votes-table td:nth-child(8) {
+        display: none;
+    }
+
+    /* Notable card: photo+name strip on top, tiles below */
+    .notable-card {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .notable-card-left {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: unset;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .notable-card-left .notable-photo,
+    .notable-card-left .no-photo-large {
+        width: 52px;
+        height: 52px;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .notable-card-left .notable-name {
+        text-align: left;
+        font-size: 0.95rem;
+    }
+
+    /* Votes filters: stack vertically, full-width, touch-friendly */
+    .votes-filters {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .votes-filters select,
+    .votes-law-input {
+        width: 100%;
+        min-width: unset;
+        min-height: 42px;
+    }
+
+    /* Back button: full-width for easy tap */
+    .back-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 480px) {
     .container {
-        padding: 0 1rem;
+        padding: 0 0.875rem;
     }
 
     .stats-grid {
         grid-template-columns: 1fr 1fr;
     }
 
+    /* Search filters: label + select inline */
+    .filters {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        flex-shrink: 0;
+        min-width: 70px;
+    }
+
+    .filter-group select {
+        flex: 1;
+    }
+
     .alignment-card {
-        min-width: 90px;
+        min-width: 80px;
         padding: 0.5rem 0.75rem;
     }
 
     .alignment-card .alignment-value {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
     }
 
     .waffle-law-row {
@@ -1233,6 +1531,11 @@ body {
         width: 100%;
     }
 
+    .waffle-filter-group {
+        width: 100%;
+    }
+
+    .waffle-filter-group select,
     .waffle-filter-group input {
         width: 100%;
     }
@@ -1244,6 +1547,19 @@ body {
     .waffle-actions .btn-share {
         flex: 1;
         justify-content: center;
+    }
+
+    /* Notable share buttons: full-width row */
+    .notable-actions .btn-share {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Tighten legend spacing */
+    .waffle-legend,
+    .notable-legend {
+        gap: 0.5rem;
+        font-size: 0.7rem;
     }
 }
 

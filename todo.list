@@ -1,9 +1,1 @@
-We need to remove the link to url that we have currently added to the  "Leyes destacadas" section. 
-Also, we need to add funcitonality so that when a checkbox in that section is clicked, weget a popup with
-information regarding that votacion, probably name and date, as well as a clickable link which
-opens the url to that particular votacion in the diputados website.
-
-Fix the text filter in the "Leyes destacadas" section which worked before but is not working now.
-
-Also, there is a problem when choosing a politician, and then going back to the search and entering a different politician page again. 
-Data sometimes becomes corrupt. Should we do any clean up when leaving a politician page to go back to the search?
+Fix each of these problems, one at a time, executing a test afterwards that enables you to make sure the problem was fixed. Once each is definitely fixed, move on to the next one.

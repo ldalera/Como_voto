@@ -15,6 +15,8 @@ Features:
   - Contested-only alignment calculation
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -48,60 +50,156 @@ log = logging.getLogger("processor")
 # Common law names mapping
 # ---------------------------------------------------------------------------
 COMMON_LAW_NAMES = [
-        (['bases y puntos de partida', "ley de bases", "ley bases"], "Ley Bases"),
-        (["medidas fiscales paliativas", "paquete fiscal"], "Paquete Fiscal"),
+        # --- Major 2023-2024+ laws ---
+        (['bases y puntos de partida', "ley de bases", "ley bases"],
+         "Ley Bases"),
+        (["medidas fiscales paliativas", "paquete fiscal"],
+         "Paquete Fiscal"),
         (["régimen de incentivo para grandes inversiones",
-            "regimen de incentivo para grandes inversiones", "rigi"], "RIGI"),
-        (["decreto de necesidad y urgencia 70", "dnu 70"], "DNU 70/2023"),
-        (["movilidad jubilatoria", "movilidad previsional"],
-         "Movilidad Jubilatoria"),
-        (["financiamiento universitario"], "Financiamiento Universitario"),
-        (["privatización", "privatizacion"], "Privatizaciones"),
-        (["boleta única", "boleta unica"], "Boleta Unica de Papel"),
-        (["ficha limpia"], "Ficha Limpia"),
-        (["juicio en ausencia"], "Juicio en Ausencia"),
+            "regimen de incentivo para grandes inversiones", "rigi"],
+         "RIGI"),
+        (["decreto de necesidad y urgencia 70", "dnu 70"],
+         "DNU 70/2023"),
+
+        # --- Economy & taxes ---
+        (["impuesto a las ganancias"], "Impuesto a las Ganancias"),
+        (["bienes personales"], "Bienes Personales"),
         (["presupuesto general", "presupuesto de la administración",
             "presupuesto de la administracion", "ley de presupuesto"],
          "Presupuesto"),
-        (["código penal", "codigo penal"], "Codigo Penal"),
-        (["código procesal penal", "codigo procesal penal"],
-         "Codigo Procesal Penal"),
-        (["reforma laboral", "modernización laboral",
-            "modernizacion laboral"], "Reforma Laboral"),
-        (["ley de alquileres", "locaciones urbanas"], "Ley de Alquileres"),
-        (["impuesto a las ganancias"], "Impuesto a las Ganancias"),
-        (["bienes personales"], "Bienes Personales"),
+        (["movilidad jubilatoria", "movilidad previsional"],
+         "Movilidad Jubilatoria"),
+        (["régimen previsional", "regimen previsional"],
+         "Regimen Previsional"),
+        (["privatización", "privatizacion"], "Privatizaciones"),
         (["deuda externa", "reestructuración de deuda",
             "reestructuracion de deuda"], "Deuda Externa"),
+        (["monotributo", "régimen simplificado para pequeños contribuyentes",
+            "regimen simplificado para pequeños contribuyentes"],
+         "Monotributo"),
+        (["consenso fiscal"], "Consenso Fiscal"),
+        (["fondo monetario internacional", "fondo monetario"],
+         "FMI"),
+        (["derechos de exportación", "derechos de exportacion",
+            "retenciones agropecuarias"],
+         "Retenciones / Derechos de Exportacion"),
+
+        # --- Electoral & institutional ---
+        (["boleta única", "boleta unica"], "Boleta Unica de Papel"),
+        (["ficha limpia"], "Ficha Limpia"),
+        (["régimen electoral", "regimen electoral",
+            "código electoral", "codigo electoral"],
+         "Regimen Electoral"),
+        (["paridad de género", "paridad de genero"],
+         "Paridad de Genero"),
+        (["consejo de la magistratura"], "Consejo de la Magistratura"),
+
+        # --- Codes ---
+        (["código procesal penal", "codigo procesal penal"],
+         "Codigo Procesal Penal"),
+        (["código penal", "codigo penal"], "Codigo Penal"),
+        (["código civil", "codigo civil"], "Codigo Civil"),
+        (["código aduanero", "codigo aduanero"], "Codigo Aduanero"),
+
+        # --- Justice & security ---
+        (["juicio en ausencia"], "Juicio en Ausencia"),
+        (["régimen penal juvenil", "penal juvenil"],
+         "Regimen Penal Juvenil"),
+        (["lavado de activos"], "Lavado de Activos"),
+        (["extinción de dominio", "extincion de dominio"],
+         "Extincion de Dominio"),
+        (["inteligencia nacional", "agencia federal de inteligencia"],
+         "Inteligencia Nacional"),
+        (["narcotráfico", "narcotrafico"], "Narcotrafico"),
+
+        # --- Labor ---
+        (["reforma laboral", "modernización laboral",
+            "modernizacion laboral"], "Reforma Laboral"),
+        (["teletrabajo"], "Teletrabajo"),
+        (["trabajo agrario"], "Trabajo Agrario"),
+
+        # --- Housing & property ---
+        (["ley de alquileres", "locaciones urbanas"],
+         "Ley de Alquileres"),
+        (["tierras rurales", "dominio nacional sobre la propiedad"],
+         "Tierras Rurales"),
+
+        # --- Social & rights ---
         (["interrupción voluntaria del embarazo",
-            "interrupcion voluntaria", "aborto"], "IVE / Aborto"),
+            "interrupcion voluntaria del embarazo", "aborto"],
+         "IVE / Aborto"),
         (["violencia de género", "violencia de genero"],
          "Violencia de Genero"),
         (["emergencia alimentaria"], "Emergencia Alimentaria"),
-        (["consenso fiscal"], "Consenso Fiscal"),
-        (["paridad de género", "paridad de genero"], "Paridad de Genero"),
-        (["acceso a la información pública",
-            "acceso a la informacion publica"], "Acceso a Info. Publica"),
-        (["cannabis", "uso medicinal"], "Cannabis Medicinal"),
-        (["régimen previsional", "regimen previsional"],
-         "Regimen Previsional"),
-        (["defensa nacional"], "Defensa Nacional"),
+        (["matrimonio igualitario",
+            "matrimonio entre personas del mismo sexo",
+            "matrimonio civil",
+            "código civil, sobre matrimonio",
+            "codigo civil, sobre matrimonio"],
+         "Matrimonio Igualitario"),
+        (["identidad de género", "identidad de genero",
+            "ley de identidad"],
+         "Identidad de Genero"),
+        (["salud mental"], "Salud Mental"),
+        (["barrios populares"], "Barrios Populares"),
+
+        # --- Education & science ---
+        (["financiamiento universitario"], "Financiamiento Universitario"),
         (["educación sexual", "educacion sexual"], "Educacion Sexual"),
-        (["economía del conocimiento", "economia del conocimiento"],
-         "Economia del Conocimiento"),
-        (["góndolas", "gondolas"], "Ley de Gondolas"),
-        (["teletrabajo"], "Teletrabajo"),
+        (["financiamiento de la ciencia",
+            "financiamiento científico", "financiamiento cientifico",
+            "ciencia, tecnología e innovación",
+            "ciencia, tecnologia e innovacion",
+            "ciencia y tecnología", "ciencia y tecnologia"],
+         "Financiamiento Cientifico"),
+
+        # --- Health ---
+        (["cannabis medicinal", "uso medicinal de la planta de cannabis"],
+         "Cannabis Medicinal"),
+        (["cadena de frío de los medicamentos",
+            "cadena de frio de los medicamentos",
+            "producción pública de medicamentos",
+            "produccion publica de medicamentos"],
+         "Ley de Medicamentos"),
+
+        # --- Environment ---
         (["etiquetado frontal"], "Etiquetado Frontal"),
         (["humedales"], "Ley de Humedales"),
         (["manejo del fuego"], "Manejo del Fuego"),
-        (["régimen electoral", "regimen electoral"], "Regimen Electoral"),
-        (["emergencia pública", "emergencia publica",
-            "declaración de emergencia", "declaracion de emergencia"],
-         "Emergencia Publica"),    # additional notable laws requested by user
-        (['régimen penal juvenil', 'penal juvenil'], "Régimen Penal Juvenil"),
-        (['glaciares'], "Glaciares"),
-        (['inocencia fiscal'], "Inocencia Fiscal"),
-        (['ciencia y tecnología', 'ciencia'], "Emergencia y Financiamiento Científico")
+        (["glaciares"], "Ley de Glaciares"),
+        (["energías renovables", "energias renovables",
+            "fuentes renovables de energía",
+            "fuentes renovables de energia",
+            "energía renovable", "energia renovable"],
+         "Energias Renovables"),
+
+        # --- Consumer & commerce ---
+        (["góndolas", "gondolas"], "Ley de Gondolas"),
+        (["economía del conocimiento", "economia del conocimiento"],
+         "Economia del Conocimiento"),
+        (["compre argentino", "compre nacional"], "Compre Argentino"),
+
+        # --- Media & communication ---
+        (["servicios de comunicación audiovisual",
+            "servicios de comunicacion audiovisual", "ley de medios"],
+         "Ley de Medios"),
+
+        # --- Transparency ---
+        (["acceso a la información pública",
+            "acceso a la informacion publica"],
+         "Acceso a Info. Publica"),
+
+        # --- Transport & safety ---
+        (["seguridad vial", "tránsito y seguridad vial",
+            "transito y seguridad vial"],
+         "Seguridad Vial"),
+        (["ludopatía", "ludopatia", "apuestas en línea",
+            "apuestas en linea", "juegos de azar y apuestas"],
+         "Ludopatia / Apuestas Online"),
+
+        # --- Other ---
+        (["defensa nacional"], "Defensa Nacional"),
+        (["inocencia fiscal"], "Inocencia Fiscal"),
 ]
 
 
@@ -109,31 +207,59 @@ def COMMON_NORM(s: str) -> str:
         return unicodedata.normalize('NFKD', (s or '')).encode('ascii', 'ignore').decode('ascii').lower()
 
 
-# Precompute normalized keyword entries for matching. Use simple
-# substring matching for multi-word / longer keywords and use a
-# word-boundary regex only for short tokens to avoid false positives.
-COMMON_LAW_ENTRIES: list[tuple[str, str]] = []
-for keywords, common_name in COMMON_LAW_NAMES:
-        for kw in keywords:
-                kw_norm = COMMON_NORM(kw)
-                COMMON_LAW_ENTRIES.append((kw_norm, common_name))
+# Precompute normalized keywords per rule so we don't re-normalize on
+# every call to get_common_name.
+_COMMON_LAW_RULES: list[tuple[list[str], str]] = []
+for _keywords, _common_name in COMMON_LAW_NAMES:
+        _COMMON_LAW_RULES.append(
+                ([COMMON_NORM(kw) for kw in _keywords], _common_name)
+        )
+
+
+def _kw_matches(kw_norm: str, t_norm: str) -> bool:
+        """Return True if *kw_norm* is found inside *t_norm*.
+
+        Short tokens (<=4 chars) require a whole-word boundary match to
+        avoid accidental substring hits; longer phrases use plain substring
+        matching which is more forgiving with punctuation.
+        """
+        if len(kw_norm) <= 4:
+                return bool(re.search(r"\b" + re.escape(kw_norm) + r"\b", t_norm))
+        return kw_norm in t_norm
 
 
 def get_common_name(title: str) -> str | None:
+        """Return the best-matching common law name for *title*, or None.
+
+        Every rule in COMMON_LAW_NAMES is evaluated against the title.
+        For each rule we count how many of its keywords match and sum
+        their lengths.  The rule with the highest score wins — scored by
+        ``(total_matched_keyword_length, matched_token_count)`` — which
+        avoids ambiguous first-match-wins behaviour and ensures more
+        specific rules beat shorter / vaguer ones.
+        """
         if not title:
                 return None
         t_norm = COMMON_NORM(title)
-        for kw_norm, common_name in COMMON_LAW_ENTRIES:
-                # Short tokens (<=4) require whole-word match to avoid
-                # accidental substring matches; longer phrases use simple
-                # substring matching which is more forgiving with punctuation.
-                if len(kw_norm) <= 4:
-                        if re.search(r"\b" + re.escape(kw_norm) + r"\b", t_norm):
-                                return common_name
-                else:
-                        if kw_norm in t_norm:
-                                return common_name
-        return None
+
+        best_name: str | None = None
+        best_score: tuple[int, int] = (0, 0)
+
+        for norm_keywords, common_name in _COMMON_LAW_RULES:
+                matched_length = 0
+                matched_count = 0
+                for kw_norm in norm_keywords:
+                        if _kw_matches(kw_norm, t_norm):
+                                matched_length += len(kw_norm)
+                                matched_count += 1
+
+                if matched_count > 0:
+                        score = (matched_length, matched_count)
+                        if score > best_score:
+                                best_score = score
+                                best_name = common_name
+
+        return best_name
 
 
 # ---------------------------------------------------------------------------

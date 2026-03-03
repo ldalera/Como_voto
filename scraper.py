@@ -15,6 +15,8 @@ Stores results in data/ directory as consolidated JSON files
 (one file per chamber with shared lookup tables for compact storage).
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os

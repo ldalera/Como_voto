@@ -21,6 +21,7 @@ let chartAlignment = null;
 let chartYearly = null;
 let currentVotesPage = 1;
 let currentWafflePage = 1;
+let loadRequestId = 0; // Guard against stale async loads
 const VOTES_PER_PAGE = 25;
 const LAWS_PER_PAGE = 10;
 
@@ -42,7 +43,7 @@ const NOTABLE_LAW_KEYWORDS = [
     "IVE / Aborto",
     "Presupuesto",
     "Impuesto a las Ganancias",
-    "Ciencia y Tecnología"
+    "Ciencia"
 ];
 
 // ===========================================================================
@@ -183,6 +184,8 @@ function onNotableSearchInput() {
     });
 }
 
+let notableCardData = null; // Store notable card data for popup date lookups
+
 async function loadNotableCard(nameKey) {
     const safeKey = nameKey.replace(/[^A-Z0-9_]/g, "_").substring(0, 80);
     const url = `${DATA_PATH}/legislators/${safeKey}.json`;
@@ -191,6 +194,7 @@ async function loadNotableCard(nameKey) {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
+        notableCardData = data;
         renderNotableCard(data);
     } catch (err) {
         console.error("Error loading notable card:", err);
@@ -235,34 +239,34 @@ function renderNotableCard(data) {
     if (notableLaws.length === 0) {
         right.innerHTML = `<div class="notable-no-data">Este legislador no tiene votos registrados en las leyes destacadas.</div>`;
     } else {
-        right.innerHTML = notableLaws.map((law) => {
-            // compute link for law using first vote if available
-            let href = law.url || "";
-            if (!href && law.votes && law.votes.length > 0) {
-                const v0 = law.votes[0];
-                if (v0.url) href = v0.url;
-                else if (v0.ch === "diputados" && v0.vid) {
-                    href = `https://votaciones.hcdn.gob.ar/votacion/${v0.vid}`;
-                }
-            }
-            const linkHtml = href ? `<a class="law-link" href="${escapeAttr(href)}" target="_blank" title="Ver votación original">🔗</a>` : "";
-
-            const tiles = law.votes.map((vote) => {
+        right.innerHTML = notableLaws.map((law, lawIdx) => {
+            const tiles = law.votes.map((vote, voteIdx) => {
                 const isGeneral = vote.g === true;
-                const cls = `waffle-tile tile-${vote.v}${isGeneral ? " tile-general" : ""}`;
+                const cls = `waffle-tile tile-${vote.v}${isGeneral ? " tile-general" : ""} tile-clickable`;
                 const icon = voteIcon(vote.v);
                 const label = vote.al || (isGeneral ? "En General" : "");
                 const tooltip = label ? `${label}: ${formatVoteShort(vote.v)}` : formatVoteShort(vote.v);
-                return `<div class="${cls}" title="${escapeAttr(tooltip)}">${icon}</div>`;
+                return `<div class="${cls}" title="${escapeAttr(tooltip)}" data-notable-law="${lawIdx}" data-notable-vote="${voteIdx}">${icon}</div>`;
             }).join("");
 
             return `
             <div class="notable-law-block">
-                <div class="notable-law-title">${escapeHtml(law.displayName)} ${linkHtml}</div>
+                <div class="notable-law-title">${escapeHtml(law.displayName)}</div>
                 <div class="notable-law-tiles">${tiles}</div>
-                ${href ? `<div class="notable-law-link"><a href="${escapeAttr(href)}" target="_blank">Ver votación original</a></div>` : ""}
             </div>`;
         }).join("");
+
+        // Attach click handlers to tiles
+        right.querySelectorAll(".tile-clickable").forEach((tile) => {
+            tile.addEventListener("click", () => {
+                const lIdx = parseInt(tile.dataset.notableLaw);
+                const vIdx = parseInt(tile.dataset.notableVote);
+                const law = notableLaws[lIdx];
+                if (law && law.votes[vIdx]) {
+                    showVotePopup(law.displayName, law.votes[vIdx], law.year);
+                }
+            });
+        });
     }
 
     // Scroll into view
@@ -285,26 +289,88 @@ function shareTwitterNotable() {
 async function loadLegislatorDetail(nameKey) {
     hideSearchResults();
 
+    // Increment request ID to invalidate any in-flight loads
+    const thisRequest = ++loadRequestId;
+
+    // Clean up previous detail state before showing new one
+    cleanupLegislatorDetail();
+
     const detailSection = document.getElementById("legislator-detail");
     detailSection.classList.remove("hidden");
     document.querySelector(".search-section").classList.add("hidden");
     document.getElementById("stats-bar").classList.add("hidden");
     document.getElementById("notable-laws-section").classList.add("hidden");
 
+    // Show loading state
+    document.getElementById("leg-name").textContent = "Cargando...";
+    document.getElementById("leg-photo").style.display = "none";
+
     const safeKey = nameKey.replace(/[^A-Z0-9_]/g, "_").substring(0, 80);
     const url = `${DATA_PATH}/legislators/${safeKey}.json`;
 
     try {
         const resp = await fetch(url);
+        // Check if this request is still the latest one
+        if (thisRequest !== loadRequestId) return;
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         currentDetail = await resp.json();
+        // Check again after parsing
+        if (thisRequest !== loadRequestId) return;
         renderLegislatorDetail(currentDetail);
     } catch (err) {
+        if (thisRequest !== loadRequestId) return;
         console.error("Error loading legislator:", err);
         document.getElementById("leg-name").textContent = "Error al cargar datos";
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/**
+ * Thoroughly clean up all legislator detail state to prevent data leaks
+ * between different legislator views.
+ */
+function cleanupLegislatorDetail() {
+    // Destroy charts
+    if (chartAlignment) { chartAlignment.destroy(); chartAlignment = null; }
+    if (chartYearly) { chartYearly.destroy(); chartYearly = null; }
+
+    // Clear global data reference
+    currentDetail = null;
+
+    // Reset pagination
+    currentVotesPage = 1;
+    currentWafflePage = 1;
+
+    // Clear DOM elements to prevent stale data from showing
+    document.getElementById("leg-name").textContent = "";
+    document.getElementById("leg-photo").style.display = "none";
+    document.getElementById("leg-chamber").textContent = "";
+    document.getElementById("leg-bloc").textContent = "";
+    document.getElementById("leg-province").textContent = "";
+    document.getElementById("leg-alignment-summary").innerHTML = "";
+    document.getElementById("waffle-card-name").innerHTML = "";
+    document.getElementById("waffle-card-meta").innerHTML = "";
+    document.getElementById("waffle-card-body").innerHTML = "";
+
+    const wafflePag = document.getElementById("waffle-pagination");
+    if (wafflePag) wafflePag.innerHTML = "";
+
+    document.getElementById("votes-tbody").innerHTML = "";
+    const votesPag = document.getElementById("votes-pagination");
+    if (votesPag) votesPag.innerHTML = "";
+
+    // Reset all filters
+    const waffleYearFilter = document.getElementById("waffle-year-filter");
+    if (waffleYearFilter) waffleYearFilter.innerHTML = '<option value="">Todos</option>';
+    const waffleLawFilter = document.getElementById("waffle-law-filter");
+    if (waffleLawFilter) waffleLawFilter.value = "";
+    const votesYearFilter = document.getElementById("votes-year-filter");
+    if (votesYearFilter) votesYearFilter.innerHTML = '<option value="">Todos los años</option>';
+    const votesTypeFilter = document.getElementById("votes-type-filter");
+    if (votesTypeFilter) votesTypeFilter.value = "";
+    const votesLawFilter = document.getElementById("votes-law-filter");
+    if (votesLawFilter) votesLawFilter.value = "";
 }
 
 function renderLegislatorDetail(data) {
@@ -377,11 +443,13 @@ function renderLegislatorDetail(data) {
         <span class="badge badge-${data.coalition.toLowerCase()}">${shortPartyName(data.bloc)}</span>
     `;
 
-    // Populate waffle year filter
+    // Populate waffle year filter (only years that have notable laws)
     const waffleYearFilter = document.getElementById("waffle-year-filter");
     waffleYearFilter.innerHTML = '<option value="">Todos</option>';
-    const years = Object.keys(data.yearly_stats).sort();
-    for (const y of years) {
+    const notableLawYears = [...new Set(
+        (data.laws || []).filter((l) => l.notable).map((l) => String(l.year))
+    )].sort();
+    for (const y of notableLawYears) {
         waffleYearFilter.innerHTML += `<option value="${y}">${y}</option>`;
     }
 
@@ -395,6 +463,7 @@ function renderLegislatorDetail(data) {
     renderWaffle();
 
     // Charts
+    const years = Object.keys(data.yearly_stats).sort();
     renderAlignmentChart(data);
     renderYearlyChart(data);
 
@@ -417,9 +486,11 @@ function showSearchView() {
     document.getElementById("stats-bar").classList.remove("hidden");
     document.getElementById("notable-laws-section").classList.remove("hidden");
 
-    if (chartAlignment) { chartAlignment.destroy(); chartAlignment = null; }
-    if (chartYearly) { chartYearly.destroy(); chartYearly = null; }
-    currentDetail = null;
+    // Invalidate any in-flight loads
+    loadRequestId++;
+
+    // Clean up all detail state
+    cleanupLegislatorDetail();
 }
 
 // ===========================================================================
@@ -464,34 +535,24 @@ function renderWaffle() {
 
     // Render law rows
     let html = "";
-    for (const law of pageLaws) {
-        const tiles = law.votes.map((vote) => {
+    for (let lawIdx = 0; lawIdx < pageLaws.length; lawIdx++) {
+        const law = pageLaws[lawIdx];
+        const tiles = law.votes.map((vote, voteIdx) => {
             const isGeneral = vote.g === true;
-            const cls = `waffle-tile tile-${vote.v}${isGeneral ? " tile-general" : ""}`;
+            const cls = `waffle-tile tile-${vote.v}${isGeneral ? " tile-general" : ""} tile-clickable`;
             const icon = voteIcon(vote.v);
             const label = vote.al || (isGeneral ? "En General" : "");
             const tooltip = label ? `${label}: ${formatVoteShort(vote.v)}` : formatVoteShort(vote.v);
-            return `<div class="${cls}" title="${escapeAttr(tooltip)}">${icon}</div>`;
+            return `<div class="${cls}" title="${escapeAttr(tooltip)}" data-law-idx="${lawIdx}" data-vote-idx="${voteIdx}">${icon}</div>`;
         }).join("");
 
         const displayName = escapeHtml(truncate(law.name, 60));
         const yearLabel = law.year ? `<span class="waffle-law-year">${law.year}</span>` : "";
 
-        // compute link for law using law.url or first vote fallback
-        let href = law.url || "";
-        if (!href && law.votes && law.votes.length > 0) {
-            const v0 = law.votes[0];
-            if (v0.url) href = v0.url;
-            else if (v0.ch === "diputados" && v0.vid) {
-                href = `https://votaciones.hcdn.gob.ar/votacion/${v0.vid}`;
-            }
-        }
-        const linkHtml = href ? `<a class="law-link" href="${escapeAttr(href)}" target="_blank" title="Ver votación original">🔗</a>` : "";
-
         html += `
         <div class="waffle-law-row">
             <div class="waffle-law-label">
-                <span class="waffle-law-name">${displayName} ${linkHtml}</span>
+                <span class="waffle-law-name">${displayName}</span>
                 ${yearLabel}
             </div>
             <div class="waffle-tiles">${tiles}</div>
@@ -499,6 +560,18 @@ function renderWaffle() {
     }
 
     body.innerHTML = html;
+
+    // Attach click handlers to waffle tiles for popup
+    body.querySelectorAll(".tile-clickable").forEach((tile) => {
+        tile.addEventListener("click", () => {
+            const lIdx = parseInt(tile.dataset.lawIdx);
+            const vIdx = parseInt(tile.dataset.voteIdx);
+            const law = pageLaws[lIdx];
+            if (law && law.votes[vIdx]) {
+                showVotePopup(law.name, law.votes[vIdx], law.year);
+            }
+        });
+    });
 
     // Render waffle pagination
     if (paginationContainer) {
@@ -542,6 +615,56 @@ function voteIcon(vote) {
         case "PRESIDENTE": return "⚑";
         default: return "?";
     }
+}
+
+// ===========================================================================
+//  VOTE INFO POPUP
+// ===========================================================================
+
+function showVotePopup(lawName, vote, lawYear) {
+    const overlay = document.getElementById("vote-popup-overlay");
+    document.getElementById("vote-popup-title").textContent = lawName || "Votación";
+    document.getElementById("vote-popup-fullname").textContent = vote.t || vote.al || "—";
+
+    // Try to find the date from the top-level votes if not in law-level vote
+    let dateStr = vote.d || "";
+    if (!dateStr && vote.vid && vote.ch) {
+        const detailData = currentDetail || notableCardData;
+        if (detailData) {
+            const match = (detailData.votes || []).find(
+                (v) => String(v.vid) === String(vote.vid) && v.ch === vote.ch
+            );
+            if (match) dateStr = match.d || "";
+        }
+    }
+    if (!dateStr && lawYear) dateStr = String(lawYear);
+    document.getElementById("vote-popup-date").textContent = dateStr || "—";
+
+    document.getElementById("vote-popup-article").textContent = vote.al || "—";
+
+    const voteEl = document.getElementById("vote-popup-vote");
+    voteEl.innerHTML = `<span class="vote-chip vote-${vote.v}">${formatVote(vote.v)}</span>`;
+
+    const linkRow = document.getElementById("vote-popup-link-row");
+    const linkEl = document.getElementById("vote-popup-link");
+    let href = vote.url || "";
+    if (!href && vote.ch === "diputados" && vote.vid) {
+        href = `https://votaciones.hcdn.gob.ar/votacion/${vote.vid}`;
+    } else if (!href && vote.ch === "senadores" && vote.vid) {
+        href = `https://www.senado.gob.ar/votaciones/detalleActa/${vote.vid}`;
+    }
+    if (href) {
+        linkEl.href = href;
+        linkRow.style.display = "";
+    } else {
+        linkRow.style.display = "none";
+    }
+
+    overlay.classList.remove("hidden");
+}
+
+function hideVotePopup() {
+    document.getElementById("vote-popup-overlay").classList.add("hidden");
 }
 
 // ===========================================================================
@@ -1118,9 +1241,21 @@ function parseArgDate(dateStr) {
 
     // Wire waffle filters
     const waffleLawFilter = document.getElementById("waffle-law-filter");
-    if (waffleLawFilter) waffleLawFilter.addEventListener("input", () => { currentWafflePage = 1; renderWaffle(); });
+    if (waffleLawFilter) waffleLawFilter.addEventListener("input", debounce(() => { currentWafflePage = 1; renderWaffle(); }, 200));
     const waffleYearFilter = document.getElementById("waffle-year-filter");
     if (waffleYearFilter) waffleYearFilter.addEventListener("change", () => { currentWafflePage = 1; renderWaffle(); });
+
+    // Wire province filter (was missing)
+    const provinceSel = document.getElementById("filter-province");
+    if (provinceSel) provinceSel.addEventListener("change", onSearchInput);
+
+    // Wire votes table filters (were missing)
+    const votesYearFilter = document.getElementById("votes-year-filter");
+    if (votesYearFilter) votesYearFilter.addEventListener("change", () => { currentVotesPage = 1; renderVotesTable(); });
+    const votesTypeFilter = document.getElementById("votes-type-filter");
+    if (votesTypeFilter) votesTypeFilter.addEventListener("change", () => { currentVotesPage = 1; renderVotesTable(); });
+    const votesLawFilter = document.getElementById("votes-law-filter");
+    if (votesLawFilter) votesLawFilter.addEventListener("input", debounce(() => { currentVotesPage = 1; renderVotesTable(); }, 250));
 
     // Populate initial small search result if desired (empty/hidden)
     hideSearchResults();
@@ -1129,4 +1264,15 @@ function parseArgDate(dateStr) {
     if (btnCopyWaffle) btnCopyWaffle.addEventListener("click", copyWaffleImage);
     const btnShareWaffle = document.getElementById("btn-share-tw");
     if (btnShareWaffle) btnShareWaffle.addEventListener("click", shareTwitter);
+
+    // Wire vote popup close handlers
+    const popupOverlay = document.getElementById("vote-popup-overlay");
+    const popupClose = document.getElementById("vote-popup-close");
+    if (popupClose) popupClose.addEventListener("click", hideVotePopup);
+    if (popupOverlay) popupOverlay.addEventListener("click", (e) => {
+        if (e.target === popupOverlay) hideVotePopup();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") hideVotePopup();
+    });
 })();

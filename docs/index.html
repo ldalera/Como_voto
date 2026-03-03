@@ -312,6 +312,35 @@
         </div>
     </footer>
 
+    <!-- ============ VOTE INFO POPUP ============ -->
+    <div class="vote-popup-overlay hidden" id="vote-popup-overlay">
+        <div class="vote-popup" id="vote-popup">
+            <button class="vote-popup-close" id="vote-popup-close">&times;</button>
+            <h3 class="vote-popup-title" id="vote-popup-title"></h3>
+            <div class="vote-popup-body">
+                <div class="vote-popup-row">
+                    <span class="vote-popup-label">Nombre completo:</span>
+                    <span class="vote-popup-value" id="vote-popup-fullname"></span>
+                </div>
+                <div class="vote-popup-row">
+                    <span class="vote-popup-label">Fecha:</span>
+                    <span class="vote-popup-value" id="vote-popup-date"></span>
+                </div>
+                <div class="vote-popup-row">
+                    <span class="vote-popup-label">Artículo / Detalle:</span>
+                    <span class="vote-popup-value" id="vote-popup-article"></span>
+                </div>
+                <div class="vote-popup-row">
+                    <span class="vote-popup-label">Voto:</span>
+                    <span class="vote-popup-value" id="vote-popup-vote"></span>
+                </div>
+                <div class="vote-popup-row" id="vote-popup-link-row">
+                    <a class="vote-popup-link" id="vote-popup-link" href="" target="_blank">🔗 Ver votación en sitio oficial</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
