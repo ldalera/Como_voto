@@ -672,6 +672,13 @@ body {
     border: 2px solid #94a3b8;
 }
 
+/* Applied temporarily during image export so the law label doesn't crowd the tiles */
+.exporting .waffle-law-label {
+    min-width: 110px;
+    max-width: 130px;
+    font-size: 0.75rem;
+}
+
 .tile-AFIRMATIVO {
     background: #dcfce7;
     color: #16a34a;
