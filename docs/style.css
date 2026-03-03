@@ -652,25 +652,24 @@ body {
     cursor: pointer;
 }
 
-/* "En General" votes stand out with a larger box and a colored outline.
-   Explicit per-type colors are used instead of currentColor because
-   html2canvas does not resolve the currentColor keyword in box-shadow. */
+/* "En General" votes stand out with a larger box and a colored border.
+   border is used (not box-shadow) because html2canvas does not render box-shadow. */
 .waffle-tile.tile-general {
     width: 30px;
     height: 30px;
     border-radius: 4px;
     font-size: 0.8rem;
 }
-.tile-AFIRMATIVO.tile-general  { box-shadow: 0 0 0 2.5px #16a34a; }
-.tile-NEGATIVO.tile-general    { box-shadow: 0 0 0 2.5px #dc2626; }
-.tile-ABSTENCION.tile-general  { box-shadow: 0 0 0 2.5px #d97706; }
-.tile-AUSENTE.tile-general     { box-shadow: 0 0 0 2.5px #94a3b8; }
-.tile-PRESIDENTE.tile-general  { box-shadow: 0 0 0 2.5px #7c3aed; }
+.tile-AFIRMATIVO.tile-general  { border: 2.5px solid #16a34a; }
+.tile-NEGATIVO.tile-general    { border: 2.5px solid #dc2626; }
+.tile-ABSTENCION.tile-general  { border: 2.5px solid #d97706; }
+.tile-AUSENTE.tile-general     { border: 2.5px solid #94a3b8; }
+.tile-PRESIDENTE.tile-general  { border: 2.5px solid #7c3aed; }
 
-/* Legend swatch for "Voto en general" */
+/* Legend swatch for "Voto en general" — border makes it distinct from plain Ausente */
 .waffle-tile-legend.tile-general-legend {
     background: #f1f5f9;
-    box-shadow: 0 0 0 2px #94a3b8;
+    border: 2px solid #94a3b8;
 }
 
 .tile-AFIRMATIVO {
@@ -1343,11 +1342,11 @@ body {
         font-size: 0.7rem;
         border-radius: 2px;
     }
-    .tile-AFIRMATIVO.tile-general  { box-shadow: 0 0 0 1.5px #16a34a; }
-    .tile-NEGATIVO.tile-general    { box-shadow: 0 0 0 1.5px #dc2626; }
-    .tile-ABSTENCION.tile-general  { box-shadow: 0 0 0 1.5px #d97706; }
-    .tile-AUSENTE.tile-general     { box-shadow: 0 0 0 1.5px #94a3b8; }
-    .tile-PRESIDENTE.tile-general  { box-shadow: 0 0 0 1.5px #7c3aed; }
+    .tile-AFIRMATIVO.tile-general  { border: 1.5px solid #16a34a; }
+    .tile-NEGATIVO.tile-general    { border: 1.5px solid #dc2626; }
+    .tile-ABSTENCION.tile-general  { border: 1.5px solid #d97706; }
+    .tile-AUSENTE.tile-general     { border: 1.5px solid #94a3b8; }
+    .tile-PRESIDENTE.tile-general  { border: 1.5px solid #7c3aed; }
 
     .waffle-card-name {
         font-size: 1rem;
