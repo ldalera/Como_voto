@@ -273,7 +273,7 @@ body {
     color: var(--color-lla);
 }
 
-.badge-other {
+.badge-otros {
     background: rgba(120, 144, 156, 0.12);
     color: var(--color-other);
 }

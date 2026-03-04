@@ -204,8 +204,54 @@ def classify_bloc_party(bloc_name: str) -> str:
     for kw in _CC_PARTY_KW:
         if kw in name:
             return "CC"
-    return "OTHER"
+    return "OTROS"
  
+
+# ---------------------------------------------------------------------------
+# Province name normalization
+# ---------------------------------------------------------------------------
+_PROVINCE_CANONICAL: dict[str, str] = {
+    "buenos aires": "Buenos Aires",
+    "c.a.b.a.": "CABA",
+    "capital federal": "CABA",
+    "ciudad autonoma de buenos aires": "CABA",
+    "ciudad autónoma de buenos aires": "CABA",
+    "catamarca": "Catamarca",
+    "chaco": "Chaco",
+    "chubut": "Chubut",
+    "corrientes": "Corrientes",
+    "cordoba": "Córdoba",
+    "córdoba": "Córdoba",
+    "entre rios": "Entre Ríos",
+    "entre ríos": "Entre Ríos",
+    "formosa": "Formosa",
+    "jujuy": "Jujuy",
+    "la pampa": "La Pampa",
+    "la rioja": "La Rioja",
+    "mendoza": "Mendoza",
+    "misiones": "Misiones",
+    "neuquen": "Neuquén",
+    "neuquén": "Neuquén",
+    "rio negro": "Río Negro",
+    "río negro": "Río Negro",
+    "salta": "Salta",
+    "san juan": "San Juan",
+    "san luis": "San Luis",
+    "santa cruz": "Santa Cruz",
+    "santa fe": "Santa Fe",
+    "santiago del estero": "Santiago del Estero",
+    "tierra del fuego": "Tierra del Fuego",
+    "tierra del fuego, antartida e islas del atlantico sur": "Tierra del Fuego",
+    "tierra del fuego, antártida e islas del atlántico sur": "Tierra del Fuego",
+    "tucuman": "Tucumán",
+    "tucumán": "Tucumán",
+}
+
+
+def normalize_province(province: str) -> str:
+    """Return the canonical Title-Case province name."""
+    key = unicodedata.normalize("NFC", province.strip().lower())
+    return _PROVINCE_CANONICAL.get(key, province.strip())
 
 
 # ---------------------------------------------------------------------------
@@ -798,7 +844,8 @@ def build_legislator_data(
                     "chambers": [chamber],
                     "chamber": chamber,
                     "bloc": vote_record.get("bloc", ""),
-                    "province": vote_record.get("province", ""),
+                    "province": normalize_province(vote_record.get("province", "")),
+
                     "coalition": vote_record.get("coalition",
                         classify_bloc(vote_record.get("bloc", ""))),
                     "votes": [],
@@ -818,7 +865,7 @@ def build_legislator_data(
                 leg["chambers"].append(chamber)
 
             leg["bloc"] = vote_record.get("bloc", leg["bloc"])
-            leg["province"] = vote_record.get("province", leg["province"])
+            leg["province"] = normalize_province(vote_record.get("province", leg["province"]))
             leg["coalition"] = vote_record.get(
                 "coalition", leg["coalition"]
             )
@@ -1025,7 +1072,7 @@ def build_law_detail_data(law_groups: dict) -> tuple[list[dict], dict[int, dict]
                     continue  # skip PRESIDENTE and unknowns
 
                 party = classify_bloc_party(vr.get("bloc", ""))
-                party_key = party.lower() if party != "OTHER" else "oth"
+                party_key = party.lower() if party != "OTROS" else "oth"
 
                 tallies[party_key][idx] += 1
                 total[idx] += 1

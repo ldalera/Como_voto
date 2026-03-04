@@ -113,7 +113,7 @@ def classify_bloc(bloc_name: str) -> str:
     for kw in LLA_KEYWORDS:
         if kw in name:
             return "LLA"
-    return "OTHER"
+    return "OTROS"
 
 
 # ---------------------------------------------------------------------------
