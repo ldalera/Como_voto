@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./docs/data:/app/docs/data
+      - ./docs/fotos:/app/docs/fotos
+
+  scraper:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./docs/data:/app/docs/data
+      - ./docs/fotos:/app/docs/fotos
+    command: sh -c "python scraper.py && python generate_site.py"
+    profiles:
+      - update
